@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <title>ECharts</title>
+    <!-- 引入 echarts.js -->
+    <script src="js/echarts.js"></script>
+    <script src="js/vue.js"></script>
+</head>
+
+<body>
+<div id="yiyue">
+    <!-- 为ECharts准备一个具备大小（宽高）的Dom -->
+    <div id="main" style="width: 100%;height: 600px;"></div>
+</div>>
+<script>
+    new Vue(
+        {
+            el:"#yiyue",
+            data() {
+                return {
+                    option:{
+                        legend: {
+                            icon: 'rect',//形状  类型包括 circle，rect,line，roundRect，triangle，diamond，pin，arrow，none
+                            itemWidth: 10,  // 设置宽度
+                            itemHeight: 4, // 设置高度
+                            itemGap: 24, // 设置间距
+                            textStyle: {
+                                //文字样式
+                                color: '#c1dafc',
+                                fontSize: '12'
+                            },
+                            right: '30%',
+                        },
+                        tooltip: {
+                            trigger: 'axis'
+                        },
+                        xAxis: {
+                            type: 'category',
+                            splitLine: {
+                                lineStyle: {
+                                    color: '#29457e'
+                                }
+                            },
+                            axisLabel:{
+                                interval: 0
+                            },
+                            data: ['第一天', '第二天', '第三天', '第四天', '第五天', '第六天', '第七天', '未来预测']
+                        },
+                        yAxis: [
+                            {
+                                type: 'value',
+                                axisTick:{       //y轴刻度线
+                                    show: false
+                                },
+                                name: '单位：(数量)',
+                                min: 0,
+                                max: 10,
+                                interval: 1,
+                                axisLabel: {
+                                    formatter: '{value}'
+                                }
+                            }
+                        ],
+                        series: [
+                            {
+                                name: '卖出',
+                                type: 'line',
+                                itemStyle : {
+                                    normal : {
+                                        lineStyle:{
+                                            color:'#b1de6a'
+                                        }
+                                    }
+                                },
+                                data: [2,6,7,11, 5,3,6,8]
+                            },
+                            {
+                                name: '预测线',
+                                type: 'line',
+                                itemStyle : {
+                                    normal : {
+                                        lineStyle:{
+                                            color:'#F08080',
+                                            type:'dotted',
+                                        }
+                                    }
+                                },
+                                data: [1, 2, 3, 4, 5, 6, 7, 8]
+                            },
+                        ]
+                    }
+                }
+            },
+            mounted(){
+                window.addEventListener('beforeunload', e => this.beforeunloadFn())
+                window.addEventListener('unload', e => this.unloadFn())
+                myChart = echarts.init(document.getElementById('main'));
+
+                console.log(this.option.series.data)
+                myChart.setOption(this.option);
+            },
+            destroyed(){
+                window.removeEventListener('beforeunload', e => this.beforeunloadFn());
+                window.removeEventListener('unload', e => this.unloadFn());
+            },
+            created(){
+                this.option.series[0].data = [1,1,1,1,1,1,1,1]
+                // this.selectAll();
+            },
+            methods:{
+                unloadFn(){
+                    this._gap_time=new Date().getTime()-this._beforeUnload_time;
+                    if(this._gap_time<=5){
+                        axios({
+                            method:"get",
+                            url:"user/outUser",
+                        })
+                    }
+                },
+                beforeunloadFn () {
+                    this._beforeUnload_time=new Date().getTime();
+                },
+
+                /*------------------业务功能------------------*/
+                //查询所有商品
+                selectAll(){
+                    var _this= this;
+                    axios({
+                        method:"get",
+                        url:"sale/selectAll"
+                    }).then(function (resp){
+                        _this.sales = resp.data;
+                    })
+                },
+
+                /*------------------链接跳转-------------------*/
+                turnback(){
+                    window.location.href='root.html'
+                },
+            }
+        })
+</script>
+
+</body>
+
+</html>

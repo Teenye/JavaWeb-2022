@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>销售日志</title>
+    <link type="text/css" rel="stylesheet" href="css/materialize.css">
+    <link type="text/css" rel="stylesheet" href="css/dialog.css">
+    <link href="http://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <!-- Compiled and minified JavaScript -->
+
+    <script src="js/materialize.js"></script>
+    <script src="js/axios.js"></script>
+    <script src="js/vue.js"></script>
+    <script src="js/echarts.js"></script>
+</head>
+<body>
+
+<div id="yiyue">
+    <!--导航栏-->
+    <nav>
+        <div class="nav-wrapper">
+            <a href="" class="brand-logo"><i class="material-icons">cloud</i>销售业绩</a>
+            <ul class="right hide-on-med-and-down">
+                <li><a href="root.html" style="font-weight: bolder">返回</a></li>
+            </ul>
+        </div>
+    </nav>
+
+
+    <div id="main" style="width: 100%;height: 600px;"></div>
+
+</div>
+
+<script>
+    new Vue(
+        {
+        el:"#yiyue",
+        data() {
+            return {
+                option:{
+                    legend: {
+                        icon: 'rect',//形状  类型包括 circle，rect,line，roundRect，triangle，diamond，pin，arrow，none
+                        itemWidth: 10,  // 设置宽度
+                        itemHeight: 4, // 设置高度
+                        itemGap: 24, // 设置间距
+                        textStyle: {
+                            //文字样式
+                            color: '#c1dafc',
+                            fontSize: '12'
+                        },
+                        right: '30%',
+                    },
+                    tooltip: {
+                        trigger: 'axis'
+                    },
+                    xAxis: {
+                        type: 'category',
+                        splitLine: {
+                            lineStyle: {
+                                color: '#29457e'
+                            }
+                        },
+                        axisLabel:{
+                            interval: 0
+                        },
+                        data: ['第一天', '第二天', '第三天', '第四天', '第五天', '第六天', '第七天', '第八天','第九天','第十天']
+                    },
+                    yAxis: [
+                        {
+                            type: 'value',
+                            axisTick:{       //y轴刻度线
+                                show: false
+                            },
+                            name: '单位：(数量)',
+                            interval: 1,
+                            axisLabel: {
+                                formatter: '{value}'
+                            }
+                        }
+                    ],
+                    series: [
+                        {
+                            name: '卖出',
+                            type: 'line',
+                            itemStyle : {
+                                normal : {
+                                    lineStyle:{
+                                        color:'#b1de6a'
+                                    }
+                                }
+                            },
+                        },
+                        {
+                            name: '预测线',
+                            type: 'line',
+                            itemStyle : {
+                                normal : {
+                                    lineStyle:{
+                                        color:'#F08080',
+                                        type:'dotted',
+                                    }
+                                }
+                            },
+                        },
+                    ]
+                },
+
+
+                _gap_time:'',
+                _beforeUnload_time:'',
+
+                id:'',
+                trend:[2,6,7,11, 5,3,6],
+                predict:[1, 2, 3, 4, 5, 6, 7, 8 , 9,10],
+
+            }
+        },
+        mounted(){
+            window.addEventListener('beforeunload', e => this.beforeunloadFn())
+            window.addEventListener('unload', e => this.unloadFn())
+        },
+        destroyed(){
+            window.removeEventListener('beforeunload', e => this.beforeunloadFn());
+            window.removeEventListener('unload', e => this.unloadFn());
+        },
+        created(){
+            this.id = JSON.parse(sessionStorage.getItem('selectId'))
+            this.selectAll();
+        },
+        methods:{
+            unloadFn(){
+                this._gap_time=new Date().getTime()-this._beforeUnload_time;
+                if(this._gap_time<=5){
+                    axios({
+                        method:"get",
+                        url:"user/outUser",
+                    })
+                }
+            },
+            beforeunloadFn () {
+                this._beforeUnload_time=new Date().getTime();
+            },
+
+            /*------------------业务功能------------------*/
+            //查询所有商品
+            selectAll(){
+                var _this= this;
+                axios({
+                    method:"post",
+                    data:_this.id,
+                    url:"userpic/selectRecent"
+                }).then(function (resp){
+                    _this.trend = resp.data;
+
+                    _this.linearRegression();
+
+                    _this.option.series[0].data = _this.trend;
+                    _this.option.series[1].data = _this.predict;
+                    /*生成表格*/
+                    myChart = echarts.init(document.getElementById('main'));
+                    myChart.setOption(_this.option);
+                })
+            },
+
+            linearRegression(){
+                var xsum=0;//x的多项和
+                var ysum=0;//y的多项和
+                var length = this.trend.length;
+                for(var i=0;i<length;i++){
+                    ysum+= this.trend[i];
+                }
+                var xmean= 3.5 ;//x的平均数
+                var ymean= ysum/ length;//y的平均数
+                var num=0;//多项式和【(x-x的均值)*(y-y的均值)】
+                var den=0;//多项式和【(x-x的均值)*(x-x的均值)】
+                for(var i=0;i < length;i++){
+                    var x = i;
+                    var y = this.trend[i];
+                    num+=(x-xmean)*(y-ymean);
+                    den+=(x-xmean)*(x-xmean);
+                }
+                a=num/den;//y=ax+b 的 系数a
+                b=ymean-a*xmean;//y=ax+b 的 系数b
+
+                for(var i=0; i<10 ; i++){
+                    this.predict[i] = a*i + b;
+                }
+            },
+
+
+
+            /*------------------链接跳转-------------------*/
+            turnback(){
+                window.location.href='myIndex.html'
+            },
+
+
+
+
+        }
+    })
+</script>
+
+<style scoped>
+    .proCharts{
+        width: 100%;
+        height: 400px;
+        background: rgb(14, 51, 129);
+    }
+</style>
+
+</body>
+</html>

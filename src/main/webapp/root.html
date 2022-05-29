@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>商品后台管理</title>
+    <link type="text/css" rel="stylesheet" href="css/materialize.css">
+    <link type="text/css" rel="stylesheet" href="css/dialog.css">
+    <link href="http://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <!-- Compiled and minified JavaScript -->
+
+    <script src="js/materialize.js"></script>
+    <script src="js/axios.js"></script>
+    <script src="js/vue.js"></script>
+</head>
+<body>
+
+<div id="yiyue">
+    <!--导航栏-->
+    <nav>
+        <div class="nav-wrapper">
+            <a href="" class="brand-logo"><i class="material-icons">cloud</i>商品管理界面</a>
+            <ul class="right hide-on-med-and-down">
+                <li><a href="rootuser.html" style="font-weight: bolder">管理用户界面</a></li>
+                <li><a href="statistics.html" style="font-weight: bolder">销售业绩统计</a></li>
+                <li><a href="userpic.html" style="font-weight: bolder">大数据管理</a></li>
+                <li><a href="myIndex.html" style="font-weight: bolder">返回商城</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!--搜索/新增功能-->
+    <div class="row">
+        <!---------------------搜索---------------------------->
+        <div class="input-field col s2">
+            <select style="display: inline-block" v-model="brandName">
+                <option value="">所有品牌</option>
+                <option v-for="brand in brands">{{brand}}</option>
+            </select>
+        </div>
+        <div class="valign-wrapper col s6">
+            <i class="material-icons">search</i>
+            <div class="input-field">
+                <input id="good_inline" type="text" class="validate" v-model="searchgood.goodName">
+                <label for="good_inline">商品名</label>
+            </div>
+            <a class="waves-effect waves-light blue btn" @click="selectByCondition">查询</a>
+        </div>
+
+        <!---------------------新增---------------------------->
+        <a class="btn-floating btn waves-effect waves-light red right" style="margin:20px;" @click="addGood"><i class="material-icons">add</i></a>
+    </div>
+
+    <!--新增框-->
+    <div class="row" v-show="dialogVisible">
+        <div class="input-field col s3">
+            <input placeholder="品牌名" id="newBrand" type="text" class="validate" v-model="good.brandName">
+            <label for="newBrand">品牌名</label>
+        </div>
+        <div class="input-field col s3">
+            <input placeholder="商品名" id="newGood" type="text" class="validate" v-model="good.goodName">
+            <label for="newGood">商品名</label>
+        </div>
+        <div class="input-field col s3">
+            <input placeholder="价格" id="newPrice" type="text" class="validate" v-model="good.price">
+            <label for="newPrice">价格</label>
+        </div>
+        <div class="input-field col s3">
+            <input placeholder="规格" id="newSpecification" type="text" class="validate" v-model="good.specification">
+            <label for="newSpecification">规格</label>
+        </div>
+        <div class="input-field col s3">
+            <input placeholder="已售" id="newSellout" type="text" class="validate" v-model="good.sellout">
+            <label for="newSellout">已售</label>
+        </div>
+        <div class="input-field col s3">
+            <input placeholder="库存" id="newKeep" type="text" class="validate" v-model="good.keep">
+            <label for="newKeep">库存</label>
+        </div>
+        <div class="input-field col s11">
+            <input placeholder="描述" id="newDescription" type="text" class="validate" v-model="good.description">
+            <label for="newDescription">描述</label>
+        </div>
+        <a class="waves-effect waves-light  btn-large" @click="submitadd">新建商品</a>
+    </div>
+
+    <!--商品表格-->
+    <div>
+        <table class="striped centered" style="table-layout: fixed">
+            <thead>
+            <tr>
+                <th style="width: 80px">品牌名</th>
+                <th style="width: 100px">商品名</th>
+                <th style="width: 40px">价格</th>
+                <th style="width: 40px">规格</th>
+                <th style="width: 40px">已售</th>
+                <th style="width: 40px">库存</th>
+                <th style="width: 140px">商品描述</th>
+                <th style="width: 80px">操作</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr v-for="good in goods">
+                <td>{{good.brandName}}</td>
+                <td>{{good.goodName}}</td>
+                <td>{{good.price}}</td>
+                <td>{{good.specification}}</td>
+                <td style="font-weight: bold">{{good.sellout}}</td>
+                <td style="font-weight: bold">{{good.keep}}</td>
+                <td style="white-space: nowrap; overflow:hidden;word-break:break-all">{{good.description}}</td>
+                <td><a class="waves-effect waves-light btn" @click="updateGood(good)">修改</a>&nbsp;<a class="waves-effect waves-light btn deep-orange lighten-1" @click="delGood(good)">删除</a>&nbsp;<a class="waves-effect waves-light btn deep-yellow lighten-1" @click="trend(good.id)">行情</a></td>
+            </tr>
+
+            </tbody>
+        </table>
+    </div>
+
+    <!--删除弹出框-->
+    <div class="dialog indigo lighten-5" v-show="delVisible">
+        <p class="header">是否删除？</p>
+        <div class="row">
+            <button class="waves-effect waves-light btn" @click="cancelDel">取消</button>&nbsp;
+            <button class="waves-effect waves-light btn" @click="doDel">确认</button>
+        </div>
+    </div>
+
+    <!--更新弹出框-->
+    <div class="updatedialog card grey lighten-1" v-show="updateVisible"style="padding: 20px">
+        <div class="row" :model="updategood">
+            <div class="input-field col s3">
+                <input placeholder="品牌名" id="Brand" type="text" v-model="updategood.brandName">
+                <label for="Brand">品牌名</label>
+            </div>
+            <div class="input-field col s3">
+                <input placeholder="商品名" id="Good" type="text" v-model="updategood.goodName">
+                <label for="Good">商品名</label>
+            </div>
+            <div class="input-field col s3">
+                <input placeholder="价格" id="Price" type="text" v-model="updategood.price">
+                <label for="Price">价格</label>
+            </div>
+            <div class="input-field col s3">
+                <input placeholder="规格" id="Specification" type="text"  v-model="updategood.specification">
+                <label for="Specification">规格</label>
+            </div>
+            <div class="input-field col s3">
+                <input placeholder="已售" id="Sellout" type="text"  v-model="updategood.sellout">
+                <label for="Sellout">已售</label>
+            </div>
+            <div class="input-field col s3">
+                <input placeholder="库存" id="Keep" type="text"  v-model="updategood.keep">
+                <label for="Keep">库存</label>
+            </div>
+            <div class="input-field col s12">
+                <textarea id="textarea1"  style="height: 160px"v-model="updategood.description"></textarea>
+            </div>
+        </div>
+        <div class="row">
+            <div class="card-image col s3">
+                <img :src="image_path" id="image">
+            </div>
+            <div class="file-field input-field" >
+                <a class="waves-effect waves-light btn">
+                    <input type="file" @change="change_file($event)" id='fileId'>
+                    <i class="large material-icons center">file_upload</i>
+                </a>
+                <div class="file-path-wrapper">
+                    <input class="file-path validate" type="text" placeholder="选择图片">
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <button class="waves-effect waves-light btn" @click="cancelUpdate">取消</button>&nbsp;
+            <button class="waves-effect waves-light btn" @click="click_update">确认</button>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    /*向后端发送图片*/
+    function getImage(url, updategood, doUpdate) {
+        var image = new Image()
+        image.src = url;
+        image.onload = function () {
+            var canvas = document.createElement('canvas')
+            canvas.width = image.width
+            canvas.height = image.height
+            canvas.getContext('2d').drawImage(image, 0, 0)
+            src = canvas.toDataURL('png')
+            updategood.img_src=src
+            doUpdate()
+        }
+    }
+
+    new Vue({
+        el:"#yiyue",
+        data() {
+            return {
+                _gap_time:'',
+                _beforeUnload_time:'',
+
+
+                /*搜索的框*/
+                dialogVisible: false,
+                /*删除的框*/
+                delVisible: false,
+                /*修改的框*/
+                updateVisible: false,
+
+                image_path:'imgs/1.png',
+
+
+                /*所有的品牌*/
+                brands:[],
+                /*查询返回的商品数据列表*/
+                goods:[],
+
+                /*------搜索------*/
+                /*选择的品牌名*/
+                brandName:'',
+                /*搜索表单名*/
+                searchgood: {
+                    brandName:'',
+                    goodName:'',
+                    price:'',
+                    specification:'',
+                    description:''
+                },
+
+                /*-----增删改-----*/
+                /*新增商品数据（不含id）*/
+                good: {
+                    brandName:'',
+                    goodName:'',
+                    price:'',
+                    specification:'',
+                    sellout:'',
+                    keep:'',
+                    description:''
+                },
+                /*删除商品数据*/
+                delgood: {
+                    id:'',
+                    brandName:'',
+                    goodName:'',
+                    price:'',
+                    specification:'',
+                    description:''
+                },
+                /*更新商品数据*/
+                updategood: {
+                    id:'',
+                    brandName:'',
+                    goodName:'',
+                    price:'',
+                    specification:'',
+                    sellout: '',
+                    keep: '',
+                    description:'',
+                    img_src: '',
+                },
+            }
+        },
+
+        mounted(){
+            window.addEventListener('beforeunload', e => this.beforeunloadFn())
+            window.addEventListener('unload', e => this.unloadFn())
+        },
+        destroyed(){
+            window.removeEventListener('beforeunload', e => this.beforeunloadFn());
+            window.removeEventListener('unload', e => this.unloadFn());
+        },
+
+        created(){
+            this.selectAll();
+            this.selectBrands();
+        },
+        methods:{
+            unloadFn(){
+                this._gap_time=new Date().getTime()-this._beforeUnload_time;
+                if(this._gap_time<=5){
+                    axios({
+                        method:"get",
+                        url:"user/outUser",
+                    })
+                }
+            },
+            beforeunloadFn () {
+                this._beforeUnload_time=new Date().getTime();
+            },
+
+            //新增按钮
+            addGood() {
+                this.dialogVisible = !this.dialogVisible
+            },
+            //删除按钮
+            delGood(good){
+                this.delVisible = !this.delVisible
+                this.delgood = good
+            },
+
+            trend(id){
+                sessionStorage.setItem('selectId', JSON.stringify(id));
+                window.location.href = 'trend.html'
+            },
+
+            //更新按钮
+            updateGood(good){
+                this.updategood.id = good.id
+                this.updategood.brandName = good.brandName
+                this.updategood.goodName = good.goodName
+                this.updategood.price = good.price
+                this.updategood.specification = good.specification
+                this.updategood.sellout = good.sellout
+                this.updategood.keep = good.keep
+                this.updategood.description = good.description
+                /*重新请求图片资源*/
+                var image = document.getElementById('image')
+                image.src = "imgs/"+this.updategood.id+".png?time="+new Date()
+                this.updateVisible = !this.updateVisible
+            },
+            //取消删除健
+            cancelDel(){
+                this.delVisible = !this.delVisible
+            },
+            //取消更新健
+            cancelUpdate(){
+                this.updateVisible = !this.updateVisible
+            },
+
+    /*-------------------------------------------分割线--------------------------------------------*/
+
+            /*查询所有品牌*/
+            selectBrands(){
+                var _this= this;
+                axios({
+                    method:"get",
+                    url:"good/selectBrands"
+                }).then(function (resp){
+                    _this.brands = resp.data;
+                })
+            },
+            //查询所有商品
+            selectAll(){
+                var _this= this;
+                axios({
+                    method:"get",
+                    url:"good/selectAll"
+                }).then(function (resp){
+                    _this.goods = resp.data;
+                })
+            },
+            //条件查询
+            selectByCondition(){
+                this.searchgood.brandName = this.brandName;
+                var _this= this;
+                console.log(this.searchgood)
+                axios({
+                    method:"post",
+                    url:"good/selectByConditionsByRoot",
+                    data:_this.searchgood
+                }).then(function (resp){
+                    _this.goods = resp.data;
+                })
+            },
+
+            //提交新增
+            submitadd() {
+                var _this = this;
+                // 发送ajax请求，添加数据
+                axios({
+                    method:"post",
+                    url:"good/add",
+                    data:_this.good,
+                }).then(function (resp) {
+                    if(resp.data === "success") {
+                        _this.dialogVisible = false;
+                        _this.selectAll();
+                        _this.selectBrands();
+                    }
+                })
+            },
+            //提交删除
+            doDel() {
+                var _this = this;
+                // 发送ajax请求，添加数据
+                axios({
+                    method:"post",
+                    url:"good/delete",
+                    data:_this.delgood
+                }).then(function (resp) {
+                    if(resp.data == "success") {
+                        _this.delVisible = false;
+                        // 重新查询数据
+                        _this.selectAll();
+                        _this.selectBrands();
+                        // 弹出消息提示
+                    }
+                })
+            },
+            //改变了图片路径
+            change_file(event) {
+                var fileInput = document.getElementById('fileId')
+                var file = fileInput.files[0];
+                var textType = /image.*/
+                if (file != undefined && file.type.match(textType)) {
+                    this.image_path = URL.createObjectURL(file)
+                    console.log(this.image_path)
+                }
+                else {
+                    alert("请选择图片文件")
+                }
+            },
+
+            click_update(){
+                //判断是否改变了图片路径从而判断是否需要上传图片
+                if (this.image_path !== './imgs/' + this.updategood.id + '.png') {
+                    getImage(this.image_path, this.updategood, this.doUpdate)
+
+                }
+                else {
+                    this.doUpdate()
+                }
+            },
+
+
+            //提交更新
+            doUpdate() {
+                    var _this = this;
+                    // 发送ajax请求，添加数据
+                    axios({
+                        method: "post",
+                        url: "good/update",
+                        data: _this.updategood
+                    }).then(function (resp) {
+                        if (resp.data == "success") {
+
+                            _this.updateVisible = false;
+
+                            // 重新查询数据
+                            _this.selectAll();
+                            _this.selectBrands();
+                        }
+                    })
+            },
+
+        }
+    })
+</script>
+
+
+</body>
+</html>

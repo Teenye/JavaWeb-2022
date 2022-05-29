@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>大数据管理</title>
+    <link type="text/css" rel="stylesheet" href="css/materialize.css">
+    <link type="text/css" rel="stylesheet" href="css/dialog.css">
+    <link href="http://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <!-- Compiled and minified JavaScript -->
+
+    <script src="js/materialize.js"></script>
+    <script src="js/axios.js"></script>
+    <script src="js/vue.js"></script>
+</head>
+<body>
+
+<div id="yiyue">
+    <!--导航栏-->
+    <nav>
+        <div class="nav-wrapper">
+            <a href="" class="brand-logo"><i class="material-icons">cloud</i>在线日志</a>
+            <ul class="right hide-on-med-and-down">
+                <li><a href="userpic.html" style="font-weight: bolder">用户画像</a></li>
+                <li><a href="operation.html" style="font-weight: bolder">后台操作日志</a></li>
+                <li><a href="root.html" style="font-weight: bolder">返回</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!---------------------搜索---------------------------->
+
+    <!--商品表格-->
+    <div style="margin-top:3%">
+        <table class="striped centered" style="table-layout: fixed">
+            <thead>
+            <tr>
+                <th style="width: 60px">用户ID</th>
+                <th style="width: 60px">用户名</th>
+                <th style="width: 60px">用户类型</th>
+                <th style="width: 80px">IP地址</th>
+                <th style="width: 80px">登录时间</th>
+                <th style="width: 40px">登出时间</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr v-for="online in onlines">
+                <td>{{online.userid}}</td>
+                <td>{{online.username}}</td>
+                <td v-if="online.type === 0">管理员</td>
+                <td v-else-if="online.type === 1">销售员</td>
+                <td v-else-if="online.type === 2">普通用户</td>
+                <td>{{online.iP}}</td>
+                <td>{{online.login}}</td>
+                <td>{{online.logout}}</td>
+            </tr>
+
+            </tbody>
+        </table>
+    </div>
+
+
+
+
+
+</div>
+
+<script>
+
+    new Vue({
+        el:"#yiyue",
+        data() {
+            return {
+                _gap_time:'',
+                _beforeUnload_time:'',
+
+                onlines:[],
+
+            }
+        },
+
+        mounted(){
+            window.addEventListener('beforeunload', e => this.beforeunloadFn())
+            window.addEventListener('unload', e => this.unloadFn())
+        },
+        destroyed(){
+            window.removeEventListener('beforeunload', e => this.beforeunloadFn());
+            window.removeEventListener('unload', e => this.unloadFn());
+        },
+
+        created(){
+            this.selectAll();
+        },
+
+        methods:{
+            /*------------------业务功能------------------*/
+            unloadFn(){
+                this._gap_time=new Date().getTime()-this._beforeUnload_time;
+                if(this._gap_time<=5){
+                    axios({
+                        method:"get",
+                        url:"user/outUser",
+                    })
+                }
+            },
+            beforeunloadFn () {
+                this._beforeUnload_time=new Date().getTime();
+            },
+
+            //查询所有商品
+            selectAll(){
+                var _this= this;
+                axios({
+                    method:"get",
+                    url:"online/selectAll"
+                }).then(function (resp){
+                    _this.onlines = resp.data;
+                    console.log(_this.onlines)
+                })
+            },
+
+        }
+    })
+</script>
+
+
+</body>
+</html>
